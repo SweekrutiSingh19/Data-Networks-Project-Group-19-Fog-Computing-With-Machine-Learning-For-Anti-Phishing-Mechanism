@@ -1,0 +1,52 @@
+import geocoder
+from geopy.geocoders import Nominatim
+import haversine as hs
+from haversine import Unit
+from flask import Flask,render_template,request
+from datetime import datetime
+import time
+
+app=Flask(__name__)
+
+g=geocoder.ip('me')
+value=g.latlng
+location=Nominatim(user_agent="GetLoc")
+latitude=value[0]
+longitude=value[1]
+coordinate=str(latitude)+", "+str(longitude)
+user_location=location.reverse(coordinate)
+transact_1=user_location.address
+
+@app.route("/",methods=["GET","POST"])
+def index():    
+    return render_template("index.html")
+
+@app.route("/new",methods=["POST","GET"])
+def newmethod():
+    global begin
+    begin=time.time()
+    noew=datetime.now()
+    amount=request.form.get("amount")
+    data=[{"place":str(user_location.address),"amount":str(amount),"time":str(noew.strftime("%H:%M:%S"))}]
+    return render_template("new.html",data=data)
+
+@app.route("/final",methods=["POST","GET"])
+def finalmethod():
+    amount=request.form.get("amount")
+    value_2=[]
+    location_data=location.geocode(request.form.get("place"))
+    end=time.time()
+    vals=begin-end
+    value_2.append(location_data.latitude)
+    value_2.append(location_data.longitude)
+    print(hs.haversine(value_2,value,unit=Unit.METERS)/1000,"advvadv",abs(vals))
+    if hs.haversine(value_2,value,unit=Unit.METERS)/1000<=abs(vals):
+        place="Transaction passed"
+    else:
+        place="Transaction failed"
+    data=[{"place":str(place),"amount":str(amount)}]
+    return render_template("final.html",data=data)
+
+
+
+app.run(debug=True)
